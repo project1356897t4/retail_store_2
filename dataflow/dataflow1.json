@@ -1,0 +1,79 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Parquet1",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "cast1"
+				},
+				{
+					"name": "derivedColumn1",
+					"description": "Creating/updating the columns 'CustomerID, CustomerName, Email, Phone, City, Country'"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "filter2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerID as string,",
+				"          CustomerName as string,",
+				"          Email as string,",
+				"          Phone as string,",
+				"          City as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 cast(output(",
+				"          CustomerID as integer",
+				"     ),",
+				"     errors: true) ~> cast1",
+				"cast1 derive(CustomerName = case(length(trim(CustomerName)) == 0, toString(null()), trim(CustomerName)),",
+				"          Email = case(length(trim(City)) == 0, toString(null()), trim(City)),",
+				"          City = case(length(trim(Country)) == 0, toString(null()), trim(Country)),",
+				"          Phone = case(   trim(Phone) == 'None' || length(trim(Phone)) == 0, toString(null()),   regexReplace(split(trim(Phone), 'x')[1], '[^0-9]', '') ),",
+				"          Country = case(length(trim(Country)) == 0, toString(null()), trim(Country))) ~> derivedColumn1",
+				"filter1 window(over(Emaildedup = CustomerID),",
+				"     desc(CustomerID, true),",
+				"     rank = rowNumber()) ~> window1",
+				"derivedColumn1 filter(!isNull(CustomerID)) ~> filter1",
+				"window1 filter(rank == 1) ~> filter2",
+				"filter2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1"
+			]
+		}
+	}
+}
