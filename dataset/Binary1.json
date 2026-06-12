@@ -11,9 +11,6 @@
 			"location": {
 				"type": "HttpServerLocation",
 				"relativeUrl": "datasets/download/varunkumari/ai-shop-dataset/customers_sample.csv?datasetVersionNumber=3"
-			},
-			"compression": {
-				"type": "ZipDeflate"
 			}
 		}
 	}
