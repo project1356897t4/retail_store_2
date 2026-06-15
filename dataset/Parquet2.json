@@ -1,5 +1,5 @@
 {
-	"name": "Parquet1",
+	"name": "Parquet2",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage1",
@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "customer_Clean",
+				"folderPath": "customer_bad",
 				"fileSystem": "silver"
 			},
 			"compressionCodec": "snappy"
