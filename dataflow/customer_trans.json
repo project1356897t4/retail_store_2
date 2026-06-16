@@ -6,14 +6,14 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "DelimitedText1",
+						"referenceName": "customer_raw",
 						"type": "DatasetReference"
 					},
 					"name": "source1"
 				},
 				{
 					"dataset": {
-						"referenceName": "DelimitedText2",
+						"referenceName": "country_lookup",
 						"type": "DatasetReference"
 					},
 					"name": "source2"
@@ -22,27 +22,13 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "Parquet2",
+						"referenceName": "dim_customer",
 						"type": "DatasetReference"
 					},
 					"name": "sink2"
-				},
-				{
-					"dataset": {
-						"referenceName": "Parquet1",
-						"type": "DatasetReference"
-					},
-					"name": "sink3"
 				}
 			],
 			"transformations": [
-				{
-					"name": "cast1"
-				},
-				{
-					"name": "derivedColumn1",
-					"description": "Creating/updating the columns 'CustomerID, CustomerName, Email, Phone, City, Country'"
-				},
 				{
 					"name": "window1"
 				},
@@ -53,28 +39,15 @@
 					"name": "filter2"
 				},
 				{
-					"name": "select1"
-				},
-				{
-					"name": "split1"
-				},
-				{
-					"name": "IngestedTimestamp"
-				},
-				{
-					"name": "derivedColumn2"
-				},
-				{
 					"name": "lookup1"
 				},
 				{
-					"name": "MapDrifted1",
-					"description": "Creates an explicit mapping for each drifted column"
+					"name": "select1"
 				}
 			],
 			"scriptLines": [
 				"source(output(",
-				"          CustomerID as string,",
+				"          CustomerID as integer,",
 				"          CustomerName as string,",
 				"          Email as string,",
 				"          Phone as string,",
@@ -84,58 +57,44 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> source1",
-				"source(allowSchemaDrift: true,",
+				"source(output(",
+				"          CountryName as string,",
+				"          Alpha2Code as string,",
+				"          Alpha3Code as string,",
+				"          NumericCode as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> source2",
-				"source1 cast(output(",
-				"          CustomerID as integer",
-				"     ),",
-				"     errors: true) ~> cast1",
-				"cast1 derive(CustomerName = case(length(trim(CustomerName)) == 0, toString(null()), trim(CustomerName)),",
-				"          Email = case(length(trim(Email)) == 0, toString(null()), trim(Email)),",
-				"          City = case(length(trim(City)) == 0, toString(null()), trim(City)),",
-				"          Phone = case(   trim(Phone) == 'None' || length(trim(Phone)) == 0, toString(null()),   regexReplace(split(trim(Phone), 'x')[1], '[^0-9]', '') ),",
-				"          Country = case(length(trim(Country)) == 0, toString(null()), trim(Country))) ~> derivedColumn1",
 				"filter1 window(over(Emaildedup = CustomerID),",
 				"     desc(CustomerID, true),",
 				"     rank = rowNumber()) ~> window1",
-				"derivedColumn1 filter(!isNull(CustomerID)) ~> filter1",
+				"source1 filter(!isNull(CustomerID)) ~> filter1",
 				"window1 filter(rank == 1) ~> filter2",
-				"filter2 select(mapColumn(",
+				"filter2, source2 lookup(upper(trim(toString(Country))) == upper(trim(toString(CountryName))),",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 select(mapColumn(",
 				"          CustomerID,",
 				"          CustomerName,",
 				"          Email,",
 				"          Phone,",
 				"          City,",
-				"          Country",
+				"          Country,",
+				"          CountryName,",
+				"          Alpha3Code",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 split(!isNull(CustomerID) && !isNull(CustomerName) && !isNull(Email)   && !isNull(Phone) && !isNull(City) && !isNull(Country),",
-				"     disjoint: false) ~> split1@(clean, quarantine)",
-				"split1@quarantine derive(ingestedTime = currentUTC()) ~> IngestedTimestamp",
-				"lookup1 derive(ingestedTime = currentUTC()) ~> derivedColumn2",
-				"split1@clean, source2 lookup(upper(trim(toString(Country))) == upper(trim(toString(CountryName))),",
-				"     multiple: false,",
-				"     pickup: 'any',",
-				"     broadcast: 'right')~> lookup1",
-				"derivedColumn2 derive(Alpha3Code = toString(byName('Alpha3Code'))) ~> MapDrifted1",
-				"IngestedTimestamp sink(allowSchemaDrift: true,",
+				"select1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
 				"     umask: 0022,",
 				"     preCommands: [],",
 				"     postCommands: [],",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink2",
-				"MapDrifted1 sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     format: 'parquet',",
-				"     umask: 0022,",
-				"     preCommands: [],",
-				"     postCommands: [],",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> sink3"
+				"     skipDuplicateMapOutputs: true) ~> sink2"
 			]
 		}
 	}

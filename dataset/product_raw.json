@@ -1,5 +1,5 @@
 {
-	"name": "customer_raw",
+	"name": "product_raw",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage1",
@@ -10,7 +10,8 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "customer",
+				"fileName": "products_sample.csv",
+				"folderPath": "product",
 				"fileSystem": "bronze"
 			},
 			"columnDelimiter": ",",
@@ -20,27 +21,23 @@
 		},
 		"schema": [
 			{
-				"name": "CustomerID",
+				"name": "ProductID",
 				"type": "String"
 			},
 			{
-				"name": "CustomerName",
+				"name": "ProductName",
 				"type": "String"
 			},
 			{
-				"name": "Email",
+				"name": "Category",
 				"type": "String"
 			},
 			{
-				"name": "Phone",
+				"name": "Price",
 				"type": "String"
 			},
 			{
-				"name": "City",
-				"type": "String"
-			},
-			{
-				"name": "Country",
+				"name": "StockQuantity",
 				"type": "String"
 			}
 		]

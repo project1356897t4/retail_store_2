@@ -1,5 +1,5 @@
 {
-	"name": "dim_customer",
+	"name": "dim_product",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage1",
@@ -10,7 +10,7 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"folderPath": "customer_Clean",
+				"folderPath": "product_clean",
 				"fileSystem": "silver"
 			},
 			"compressionCodec": "snappy"

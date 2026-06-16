@@ -1,5 +1,5 @@
 {
-	"name": "DelimitedText2",
+	"name": "country_lookup",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "AzureDataLakeStorage1",
@@ -19,6 +19,23 @@
 			"firstRowAsHeader": true,
 			"quoteChar": "\""
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "CountryName",
+				"type": "String"
+			},
+			{
+				"name": "Alpha2Code",
+				"type": "String"
+			},
+			{
+				"name": "Alpha3Code",
+				"type": "String"
+			},
+			{
+				"name": "NumericCode",
+				"type": "String"
+			}
+		]
 	}
 }

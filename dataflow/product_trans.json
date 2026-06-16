@@ -1,0 +1,75 @@
+{
+	"name": "product_trans",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "product_raw",
+						"type": "DatasetReference"
+					},
+					"name": "productRaw"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dim_product",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          ProductID as integer,",
+				"          ProductName as string,",
+				"          Category as string,",
+				"          Price as integer,",
+				"          StockQuantity as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     ignoreNoFilesFound: false) ~> productRaw",
+				"filter1 window(over(Productdedup = ProductID),",
+				"     desc(ProductID, true),",
+				"     rank = rowNumber()) ~> window1",
+				"productRaw filter(!isNull(ProductID)) ~> filter1",
+				"window1 filter(rank == 1) ~> filter2",
+				"filter2 select(mapColumn(",
+				"          ProductID,",
+				"          ProductName,",
+				"          Category,",
+				"          Price,",
+				"          StockQuantity",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
+			]
+		}
+	}
+}
