@@ -1,0 +1,194 @@
+{
+    "name": "DF_Load_SCD2_Customers",
+    "properties": {
+        "type": "MappingDataFlow",
+        "typeProperties": {
+            "sources": [
+                {
+                    "linkedService": {
+                        "referenceName": "AzureDataLakeStorage",
+                        "type": "LinkedServiceReference"
+                    },
+                    "name": "srcSilverCustomers"
+                },
+                {
+                    "linkedService": {
+                        "referenceName": "AzureSqlDatabase",
+                        "type": "LinkedServiceReference"
+                    },
+                    "name": "targetCustomers"
+                }
+            ],
+            "sinks": [
+                {
+                    "linkedService": {
+                        "referenceName": "AzureSqlDatabase",
+                        "type": "LinkedServiceReference"
+                    },
+                    "name": "SinkUpdatedRows"
+                },
+                {
+                    "linkedService": {
+                        "referenceName": "AzureSqlDatabase",
+                        "type": "LinkedServiceReference"
+                    },
+                    "name": "sinkInsertRows"
+                }
+            ],
+            "transformations": [
+                {
+                    "name": "selectRenameColumns"
+                },
+                {
+                    "name": "derivedAddHash"
+                },
+                {
+                    "name": "lookup"
+                },
+                {
+                    "name": "split"
+                },
+                {
+                    "name": "derivedUpdateAuditColumns"
+                },
+                {
+                    "name": "alterRow"
+                },
+                {
+                    "name": "union"
+                },
+                {
+                    "name": "derivedInsertAuditColumns"
+                }
+            ],
+            "scriptLines": [
+                "source(output(",
+                "          CustomerID as integer,",
+                "          CustomerName as string,",
+                "          Email as string,",
+                "          Phone as string,",
+                "          City as string,",
+                "          Country as string",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     ignoreNoFilesFound: false,",
+                "     format: 'parquet',",
+                "     fileSystem: 'silver',",
+                "     folderPath: 'Customers') ~> srcSilverCustomers",
+                "source(output(",
+                "          TGT_CustomerID as integer,",
+                "          TGT_HASHCOLUMN as long",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     format: 'query',",
+                "     store: 'sqlserver',",
+                "     query: 'SELECT CustomerID as TGT_CustomerID, HASHCOLUMN as TGT_HASHCOLUMN FROM dbo.DimCustomer_SCD2 WHERE ISACTIVE = 1',",
+                "     isolationLevel: 'READ_UNCOMMITTED') ~> targetCustomers",
+                "srcSilverCustomers select(mapColumn(",
+                "          each(match(1==1),",
+                "               concat('SRC_', $$) = $$)",
+                "     ),",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true) ~> selectRenameColumns",
+                "selectRenameColumns derive(SRC_Hash = crc32(concat(toString(SRC_CustomerID),SRC_CustomerName,SRC_Email,SRC_Phone,SRC_City,SRC_Country))) ~> derivedAddHash",
+                "derivedAddHash, targetCustomers lookup(SRC_CustomerID == TGT_CustomerID,",
+                "     multiple: false,",
+                "     pickup: 'any',",
+                "     broadcast: 'auto')~> lookup",
+                "lookup split(isNull(TGT_CustomerID),",
+                "     SRC_CustomerID == TGT_CustomerID && SRC_Hash != TGT_HASHCOLUMN,",
+                "     disjoint: false) ~> split@(InsertRows, UpdateExistingRows)",
+                "split@UpdateExistingRows derive(SRC_UPDATEDBY = 'DATAFLOW-UPDATED',",
+                "          SRC_UPDATEDDATE = currentTimestamp(),",
+                "          SRC_ISACTIVE = 0) ~> derivedUpdateAuditColumns",
+                "derivedUpdateAuditColumns alterRow(updateIf(1==1)) ~> alterRow",
+                "split@InsertRows, split@UpdateExistingRows union(byName: true)~> union",
+                "union derive(SRC_CREATEDBY = 'DATAFLOW',",
+                "          SRC_CREATEDDATE = currentTimestamp(),",
+                "          SRC_UPDATEDBY = 'DATAFLOW',",
+                "          SRC_UPDATEDDATE = currentTimestamp(),",
+                "          SRC_ISACTIVE = 1) ~> derivedInsertAuditColumns",
+                "alterRow sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          CustomerID as integer,",
+                "          CustomerName as string,",
+                "          Email as string,",
+                "          Phone as string,",
+                "          City as string,",
+                "          Country as string,",
+                "          HASHCOLUMN as long,",
+                "          ISACTIVE as boolean,",
+                "          CREATED_DATE as timestamp,",
+                "          UPDATED_DATE as timestamp,",
+                "          CREATED_BY as string,",
+                "          UPDATED_BY as string",
+                "     ),",
+                "     format: 'table',",
+                "     store: 'sqlserver',",
+                "     schemaName: 'dbo',",
+                "     tableName: 'DimCustomer_SCD2',",
+                "     insertable: false,",
+                "     updateable: true,",
+                "     deletable: false,",
+                "     upsertable: false,",
+                "     keys:['CustomerID','HASHCOLUMN'],",
+                "     stagingSchemaName: '',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     errorHandlingOption: 'stopOnFirstError',",
+                "     mapColumn(",
+                "          CustomerID = TGT_CustomerID,",
+                "          HASHCOLUMN = TGT_HASHCOLUMN,",
+                "          ISACTIVE = SRC_ISACTIVE,",
+                "          UPDATED_DATE = SRC_UPDATEDDATE,",
+                "          UPDATED_BY = SRC_UPDATEDBY",
+                "     )) ~> SinkUpdatedRows",
+                "derivedInsertAuditColumns sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          CustomerID as integer,",
+                "          CustomerName as string,",
+                "          Email as string,",
+                "          Phone as string,",
+                "          City as string,",
+                "          Country as string,",
+                "          HASHCOLUMN as long,",
+                "          ISACTIVE as integer,",
+                "          CREATED_DATE as timestamp,",
+                "          UPDATED_DATE as timestamp,",
+                "          CREATED_BY as string,",
+                "          UPDATED_BY as string",
+                "     ),",
+                "     format: 'table',",
+                "     store: 'sqlserver',",
+                "     schemaName: 'dbo',",
+                "     tableName: 'DimCustomer_SCD2',",
+                "     insertable: true,",
+                "     updateable: false,",
+                "     deletable: false,",
+                "     upsertable: false,",
+                "     stagingSchemaName: '',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     errorHandlingOption: 'stopOnFirstError',",
+                "     mapColumn(",
+                "          CustomerID = SRC_CustomerID,",
+                "          CustomerName = SRC_CustomerName,",
+                "          Email = SRC_Email,",
+                "          Phone = SRC_Phone,",
+                "          City = SRC_City,",
+                "          Country = SRC_Country,",
+                "          HASHCOLUMN = SRC_Hash,",
+                "          ISACTIVE = SRC_ISACTIVE,",
+                "          CREATED_DATE = SRC_CREATEDDATE,",
+                "          UPDATED_DATE = SRC_UPDATEDDATE,",
+                "          CREATED_BY = SRC_CREATEDBY,",
+                "          UPDATED_BY = SRC_UPDATEDBY",
+                "     )) ~> sinkInsertRows"
+            ]
+        }
+    }
+}
