@@ -1,0 +1,105 @@
+{
+	"name": "sales_trans",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "sales_raw",
+						"type": "DatasetReference"
+					},
+					"name": "salesRaw"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "sales_clean",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "cast2"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "window1"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          SaleID as double,",
+				"          CustomerID as double,",
+				"          ProductID as integer,",
+				"          SaleDate as string,",
+				"          Quantity as integer,",
+				"          TotalAmount as double",
+				"     ),",
+				"     allowSchemaDrift: false,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'arrayOfDocuments') ~> salesRaw",
+				"salesRaw cast(output(",
+				"          SaleID as integer,",
+				"          CustomerID as integer,",
+				"          ProductID as integer,",
+				"          SaleDate as date,",
+				"          Quantity as integer,",
+				"          TotalAmount as decimal(10,0)",
+				"     ),",
+				"     errors: true) ~> cast2",
+				"filter2 derive({AmountBand   } = iif(isNull(TotalAmount),'Unknown', case(TotalAmount<1000,'Low', TotalAmount<3000,'Medium','High'))) ~> derivedColumn1",
+				"cast2 filter(!isNull(CustomerID) && !isNull(ProductID)",
+				"&& !isNull(Quantity) && Quantity > 0",
+				"&& !isNull(TotalAmount) && TotalAmount > 0",
+				"&& !isNull(SaleDate)",
+				") ~> filter1",
+				"filter1 window(over(SaleID),",
+				"     asc(SaleID, true),",
+				"     rank = rowNumber()) ~> window1",
+				"window1 filter(rank == 1) ~> filter2",
+				"derivedColumn1 select(mapColumn(",
+				"          SaleID,",
+				"          CustomerID,",
+				"          ProductID,",
+				"          SaleDate,",
+				"          Quantity,",
+				"          TotalAmount,",
+				"          {AmountBand   }",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     mapColumn(",
+				"          SaleID,",
+				"          CustomerID,",
+				"          ProductID,",
+				"          SaleDate,",
+				"          Quantity,",
+				"          TotalAmount,",
+				"          AmountBand = {AmountBand   }",
+				"     )) ~> sink2"
+			]
+		}
+	}
+}
