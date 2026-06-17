@@ -1,0 +1,15 @@
+{
+	"name": "projectfactory2027",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "canadacentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "c55c7ada-37e4-4783-ae3a-1b00e9c2e49e",
+		"tenantId": "7022ce09-c798-4cf2-96ec-be6521be0cc6"
+	}
+}
