@@ -1,206 +1,266 @@
 {
-	"name": "DF_Load_SCD2_Customers",
-	"properties": {
-		"type": "MappingDataFlow",
-		"typeProperties": {
-			"sources": [
-				{
-					"dataset": {
-						"referenceName": "dim_customer",
-						"type": "DatasetReference"
-					},
-					"name": "srcSilverCustomers"
-				},
-				{
-					"dataset": {
-						"referenceName": "AzureSqlTable1",
-						"type": "DatasetReference"
-					},
-					"name": "source1"
-				}
-			],
-			"sinks": [
-				{
-					"dataset": {
-						"referenceName": "AzureSqlTable1",
-						"type": "DatasetReference"
-					},
-					"name": "SinkUpdatedRows"
-				},
-				{
-					"dataset": {
-						"referenceName": "AzureSqlTable1",
-						"type": "DatasetReference"
-					},
-					"name": "sinkInsertRows"
-				}
-			],
-			"transformations": [
-				{
-					"name": "selectRenameColumns"
-				},
-				{
-					"name": "derivedAddHash"
-				},
-				{
-					"name": "lookup"
-				},
-				{
-					"name": "split"
-				},
-				{
-					"name": "alterRow"
-				},
-				{
-					"name": "union"
-				},
-				{
-					"name": "derivedColumn1"
-				},
-				{
-					"name": "select1"
-				}
-			],
-			"scriptLines": [
-				"source(output(",
-				"          CustomerID as integer,",
-				"          CustomerName as string,",
-				"          Email as string,",
-				"          Phone as string,",
-				"          City as string,",
-				"          Country as string,",
-				"          CountryName as string,",
-				"          Alpha3Code as string",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false,",
-				"     format: 'parquet',",
-				"     fileSystem: 'silver',",
-				"     folderPath: 'Customers') ~> srcSilverCustomers",
-				"source(output(",
-				"          CustomerKey as integer,",
-				"          CustomerID as integer,",
-				"          CustomerName as string,",
-				"          Email as string,",
-				"          Phone as string,",
-				"          City as string,",
-				"          Country as string,",
-				"          CountryName as string,",
-				"          Alpha3Code as string,",
-				"          ValidFrom as timestamp,",
-				"          ValidTo as timestamp,",
-				"          IsCurrent as boolean,",
-				"          InsertedDateUTC as timestamp,",
-				"          RowHash_TG as integer",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> source1",
-				"srcSilverCustomers select(mapColumn(",
-				"          each(match(1==1),",
-				"               concat('SRC_',$$) = $$)",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> selectRenameColumns",
-				"selectRenameColumns derive(SRC_Hash = crc32(concat(toString(SRC_CustomerID),SRC_CustomerName,SRC_Email,SRC_Phone,SRC_City,SRC_Country))) ~> derivedAddHash",
-				"derivedAddHash, select1 lookup(SRC_CustomerID == CustomerID,",
-				"     multiple: false,",
-				"     pickup: 'any',",
-				"     broadcast: 'auto')~> lookup",
-				"lookup split(isNull(CustomerID),",
-				"     SRC_CustomerID == CustomerID && SRC_Hash != TGT_Hash,",
-				"     disjoint: false) ~> split@(InsertRows, UpdateExistingRows)",
-				"split@UpdateExistingRows alterRow(updateIf(1==1)) ~> alterRow",
-				"split@InsertRows, split@UpdateExistingRows union(byName: true)~> union",
-				"source1 derive(TGT_Hash = crc32(concat(toString(CustomerID),CustomerName,Email,Phone,City,Country))) ~> derivedColumn1",
-				"derivedColumn1 select(mapColumn(",
-				"          CustomerID,",
-				"          TGT_Hash",
-				"     ),",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> select1",
-				"alterRow sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          CustomerKey as integer,",
-				"          CustomerID as integer,",
-				"          CustomerName as string,",
-				"          Email as string,",
-				"          Phone as string,",
-				"          City as string,",
-				"          Country as string,",
-				"          CountryName as string,",
-				"          Alpha3Code as string,",
-				"          ValidFrom as timestamp,",
-				"          ValidTo as timestamp,",
-				"          IsCurrent as boolean,",
-				"          InsertedDateUTC as timestamp,",
-				"          RowHash_TG as integer",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:false,",
-				"     updateable:true,",
-				"     upsertable:false,",
-				"     keys:['CustomerID','HASHCOLUMN'],",
-				"     skipKeyWrites:true,",
-				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'allErrors',",
-				"     transactionCommit: 'single',",
-				"     reportSuccessOnError: true,",
-				"     mapColumn(",
-				"          CustomerID = SRC_CustomerID,",
-				"          CustomerName = SRC_CustomerName,",
-				"          Email = SRC_Email,",
-				"          Phone = SRC_Phone,",
-				"          City = SRC_City,",
-				"          RowHash_TG = TGT_Hash,",
-				"          RowHash_TG = SRC_Hash",
-				"     ),",
-				"     store: 'sqlserver',",
-				"     schemaName: 'dbo') ~> SinkUpdatedRows",
-				"union sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          CustomerKey as integer,",
-				"          CustomerID as integer,",
-				"          CustomerName as string,",
-				"          Email as string,",
-				"          Phone as string,",
-				"          City as string,",
-				"          Country as string,",
-				"          CountryName as string,",
-				"          Alpha3Code as string,",
-				"          ValidFrom as timestamp,",
-				"          ValidTo as timestamp,",
-				"          IsCurrent as boolean,",
-				"          InsertedDateUTC as timestamp,",
-				"          RowHash_TG as integer",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     recreate:true,",
-				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          CustomerID = SRC_CustomerID,",
-				"          CustomerName = SRC_CustomerName,",
-				"          Email = SRC_Email,",
-				"          Phone = SRC_Phone,",
-				"          City = SRC_City,",
-				"          Country = SRC_Country,",
-				"          RowHash_TG = SRC_Hash",
-				"     ),",
-				"     store: 'sqlserver',",
-				"     schemaName: 'dbo') ~> sinkInsertRows"
-			]
-		}
-	}
+    "name": "DF_Load_SCD2_Customers",
+    "properties": {
+        "type": "MappingDataFlow",
+        "typeProperties": {
+            "sources": [
+                {
+                    "dataset": {
+                        "referenceName": "DelimitedText1",
+                        "type": "DatasetReference"
+                    },
+                    "name": "srcSilverCustomers"
+                },
+                {
+                    "dataset": {
+                        "referenceName": "AzureSqlTable1",
+                        "type": "DatasetReference"
+                    },
+                    "name": "source1"
+                },
+                {
+                    "dataset": {
+                        "referenceName": "DelimitedText1",
+                        "type": "DatasetReference"
+                    },
+                    "name": "source2"
+                }
+            ],
+            "sinks": [
+                {
+                    "dataset": {
+                        "referenceName": "AzureSqlTable1",
+                        "type": "DatasetReference"
+                    },
+                    "name": "SinkUpdatedRows"
+                },
+                {
+                    "dataset": {
+                        "referenceName": "AzureSqlTable1",
+                        "type": "DatasetReference"
+                    },
+                    "name": "sinkInsertRows"
+                }
+            ],
+            "transformations": [
+                {
+                    "name": "selectRenameColumns"
+                },
+                {
+                    "name": "derivedAddHash"
+                },
+                {
+                    "name": "lookup"
+                },
+                {
+                    "name": "split"
+                },
+                {
+                    "name": "alterRow"
+                },
+                {
+                    "name": "derivedColumn1"
+                },
+                {
+                    "name": "select1"
+                },
+                {
+                    "name": "derivedColumn2"
+                },
+                {
+                    "name": "derivedColumn3"
+                },
+                {
+                    "name": "union1"
+                }
+            ],
+            "scriptLines": [
+                "source(output(",
+                "          customer_id as string,",
+                "          first_name as string,",
+                "          last_name as string,",
+                "          email as string,",
+                "          phone as string,",
+                "          gender as string,",
+                "          birth_date as string,",
+                "          city as string,",
+                "          region as string,",
+                "          signup_date as string,",
+                "          loyalty_tier as string,",
+                "          is_active as string",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     ignoreNoFilesFound: false,",
+                "     fileSystem: 'silver',",
+                "     folderPath: 'Customers') ~> srcSilverCustomers",
+                "source(output(",
+                "          customer_key as long,",
+                "          customer_id as string,",
+                "          first_name as string,",
+                "          last_name as string,",
+                "          email as string,",
+                "          phone as string,",
+                "          gender as string,",
+                "          birth_date as date,",
+                "          city as string,",
+                "          region as string,",
+                "          signup_date as date,",
+                "          loyalty_tier as string,",
+                "          is_active as boolean,",
+                "          effective_start_date as timestamp,",
+                "          effective_end_date as timestamp,",
+                "          is_current as boolean,",
+                "          created_on as timestamp,",
+                "          created_by as string,",
+                "          updated_on as timestamp,",
+                "          updated_by as string,",
+                "          ingestion_timestamp as timestamp",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     isolationLevel: 'READ_UNCOMMITTED',",
+                "     format: 'table') ~> source1",
+                "source(output(",
+                "          customer_id as string,",
+                "          first_name as string,",
+                "          last_name as string,",
+                "          email as string,",
+                "          phone as string,",
+                "          gender as string,",
+                "          birth_date as string,",
+                "          city as string,",
+                "          region as string,",
+                "          signup_date as string,",
+                "          loyalty_tier as string,",
+                "          is_active as string",
+                "     ),",
+                "     allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     ignoreNoFilesFound: false) ~> source2",
+                "srcSilverCustomers select(mapColumn(",
+                "          each(match(1==1),",
+                "               concat('SRC_',$$) = $$)",
+                "     ),",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true) ~> selectRenameColumns",
+                "selectRenameColumns derive(SRC_Hash = crc32(concat(toString(SRC_customer_id),SRC_first_name,SRC_last_name))) ~> derivedAddHash",
+                "derivedAddHash, select1 lookup(SRC_customer_id == TGT_customer_id,",
+                "     multiple: false,",
+                "     pickup: 'any',",
+                "     broadcast: 'auto')~> lookup",
+                "lookup split(isNull(TGT_customer_id),",
+                "     !isNull(TGT_customer_id) && SRC_Hash != TGT_Hash,",
+                "     disjoint: false) ~> split@(InsertRows, UpdateExistingRows)",
+                "derivedColumn2 alterRow(updateIf(1==1)) ~> alterRow",
+                "source1 derive(TGT_Hash = crc32(concat(toString(customer_id),(first_name),(last_name)))) ~> derivedColumn1",
+                "derivedColumn1 select(mapColumn(",
+                "          TGT_customer_id = customer_id,",
+                "          TGT_Hash",
+                "     ),",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true) ~> select1",
+                "split@UpdateExistingRows derive(is_current = false(),",
+                "          effective_end_date = currentUTC(),",
+                "          updated_on = currentUTC(),",
+                "          updated_by = 'SCD2_Load') ~> derivedColumn2",
+                "split@InsertRows derive(is_current = true(),",
+                "          effective_start_date = currentUTC(),",
+                "          effective_end_date = 9999-12-31,",
+                "          created_on = currentUTC(),",
+                "          created_by = 'SCD2_Load') ~> derivedColumn3",
+                "derivedColumn2, derivedColumn3 union(byName: true)~> union1",
+                "alterRow sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          customer_key as long,",
+                "          customer_id as string,",
+                "          first_name as string,",
+                "          last_name as string,",
+                "          email as string,",
+                "          phone as string,",
+                "          gender as string,",
+                "          birth_date as date,",
+                "          city as string,",
+                "          region as string,",
+                "          signup_date as date,",
+                "          loyalty_tier as string,",
+                "          is_active as boolean,",
+                "          effective_start_date as timestamp,",
+                "          effective_end_date as timestamp,",
+                "          is_current as boolean,",
+                "          created_on as timestamp,",
+                "          created_by as string,",
+                "          updated_on as timestamp,",
+                "          updated_by as string,",
+                "          ingestion_timestamp as timestamp",
+                "     ),",
+                "     deletable:false,",
+                "     insertable:false,",
+                "     updateable:true,",
+                "     upsertable:false,",
+                "     keys:['customer_key'],",
+                "     skipKeyWrites:true,",
+                "     format: 'table',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     errorHandlingOption: 'allErrors',",
+                "     transactionCommit: 'single',",
+                "     reportSuccessOnError: true,",
+                "     mapColumn(",
+                "          effective_end_date,",
+                "          is_current,",
+                "          updated_on,",
+                "          updated_by,",
+                "          customer_key = SRC_customer_id",
+                "     ),",
+                "     store: 'sqlserver',",
+                "     schemaName: 'dbo') ~> SinkUpdatedRows",
+                "union1 sink(allowSchemaDrift: true,",
+                "     validateSchema: false,",
+                "     input(",
+                "          customer_key as long,",
+                "          customer_id as string,",
+                "          first_name as string,",
+                "          last_name as string,",
+                "          email as string,",
+                "          phone as string,",
+                "          gender as string,",
+                "          birth_date as date,",
+                "          city as string,",
+                "          region as string,",
+                "          signup_date as date,",
+                "          loyalty_tier as string,",
+                "          is_active as boolean,",
+                "          effective_start_date as timestamp,",
+                "          effective_end_date as timestamp,",
+                "          is_current as boolean,",
+                "          created_on as timestamp,",
+                "          created_by as string,",
+                "          updated_on as timestamp,",
+                "          updated_by as string,",
+                "          ingestion_timestamp as timestamp",
+                "     ),",
+                "     deletable:false,",
+                "     insertable:true,",
+                "     updateable:false,",
+                "     upsertable:false,",
+                "     recreate:true,",
+                "     format: 'table',",
+                "     skipDuplicateMapInputs: true,",
+                "     skipDuplicateMapOutputs: true,",
+                "     errorHandlingOption: 'stopOnFirstError',",
+                "     mapColumn(",
+                "          effective_start_date,",
+                "          is_current,",
+                "          created_on,",
+                "          created_by,",
+                "          updated_on,",
+                "          updated_by",
+                "     ),",
+                "     store: 'sqlserver',",
+                "     schemaName: 'dbo') ~> sinkInsertRows"
+            ]
+        }
+    }
 }
