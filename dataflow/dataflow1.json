@@ -131,7 +131,6 @@
 				"exists3 derive(IsCurrent = false()) ~> derivedColumn4",
 				"derivedColumn4 alterRow(updateIf(true())) ~> alterRow1",
 				"alterRow1 select(mapColumn(",
-				"          CustomerKey,",
 				"          CustomerID,",
 				"          CustomerName,",
 				"          Email,",
