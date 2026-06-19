@@ -1,0 +1,219 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "incomingdata",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "derivedColumn2"
+				},
+				{
+					"name": "exists1"
+				},
+				{
+					"name": "derivedColumn3"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "exists2"
+				},
+				{
+					"name": "exists3"
+				},
+				{
+					"name": "derivedColumn4"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustomerID as integer,",
+				"          CustomerName as string,",
+				"          Email as string,",
+				"          Phone as string,",
+				"          City as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     inferDriftedColumnTypes: true,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          CustomerKey as integer,",
+				"          CustomerID as integer,",
+				"          CustomerName as string,",
+				"          Email as string,",
+				"          Phone as string,",
+				"          City as string,",
+				"          Country as string,",
+				"          CountryName as string,",
+				"          Alpha3Code as string,",
+				"          ValidFrom as timestamp,",
+				"          ValidTo as timestamp,",
+				"          IsCurrent as boolean,",
+				"          InsertedDateUTC as timestamp,",
+				"          RowHash_TG as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source2",
+				"source1 derive(src_hash = crc32(concat(toString(CustomerID),(CustomerName),(Email)))) ~> derivedColumn1",
+				"source2 derive(tgr_hash = crc32(concat(toString(CustomerID),(CustomerName),(Email)))) ~> derivedColumn2",
+				"derivedColumn1, derivedColumn2 exists(src_hash == tgr_hash,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> exists1",
+				"exists1 derive(IsCurrent = true(),",
+				"          ValidTo = toTimestamp('9999-12-31 23:59:59.999', 'yyyy-MM-dd HH:mm:ss.SSS'),",
+				"          ValidFrom = currentUTC()) ~> derivedColumn3",
+				"derivedColumn3 select(mapColumn(",
+				"          CustomerID,",
+				"          CustomerName,",
+				"          Email,",
+				"          Phone,",
+				"          City,",
+				"          Country,",
+				"          src_hash,",
+				"          IsCurrent,",
+				"          ValidTo,",
+				"          ValidFrom",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"derivedColumn2, derivedColumn1 exists(source2@CustomerID == source1@CustomerID,",
+				"     negate:false,",
+				"     broadcast: 'auto')~> exists2",
+				"exists2, derivedColumn1 exists(tgr_hash == src_hash,",
+				"     negate:true,",
+				"     broadcast: 'auto')~> exists3",
+				"exists3 derive(IsCurrent = false()) ~> derivedColumn4",
+				"derivedColumn4 alterRow(updateIf(true())) ~> alterRow1",
+				"alterRow1 select(mapColumn(",
+				"          CustomerKey,",
+				"          CustomerID,",
+				"          CustomerName,",
+				"          Email,",
+				"          Phone,",
+				"          City,",
+				"          Country,",
+				"          CountryName,",
+				"          Alpha3Code,",
+				"          ValidFrom,",
+				"          ValidTo,",
+				"          IsCurrent,",
+				"          InsertedDateUTC,",
+				"          RowHash_TG",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          CustomerKey as integer,",
+				"          CustomerID as integer,",
+				"          CustomerName as string,",
+				"          Email as string,",
+				"          Phone as string,",
+				"          City as string,",
+				"          Country as string,",
+				"          CountryName as string,",
+				"          Alpha3Code as string,",
+				"          ValidFrom as timestamp,",
+				"          ValidTo as timestamp,",
+				"          IsCurrent as boolean,",
+				"          InsertedDateUTC as timestamp,",
+				"          RowHash_TG as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          CustomerID,",
+				"          CustomerName,",
+				"          Email,",
+				"          Phone,",
+				"          City,",
+				"          Country,",
+				"          ValidFrom,",
+				"          ValidTo,",
+				"          IsCurrent",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink1",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          CustomerKey as integer,",
+				"          CustomerID as integer,",
+				"          CustomerName as string,",
+				"          Email as string,",
+				"          Phone as string,",
+				"          City as string,",
+				"          Country as string,",
+				"          CountryName as string,",
+				"          Alpha3Code as string,",
+				"          ValidFrom as timestamp,",
+				"          ValidTo as timestamp,",
+				"          IsCurrent as boolean,",
+				"          InsertedDateUTC as timestamp,",
+				"          RowHash_TG as integer",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     partitionBy('hash', 1)) ~> sink2"
+			]
+		}
+	}
+}
