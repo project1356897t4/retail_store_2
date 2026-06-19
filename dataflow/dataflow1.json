@@ -213,6 +213,21 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          CustomerID,",
+				"          CustomerName,",
+				"          Email,",
+				"          Phone,",
+				"          City,",
+				"          Country,",
+				"          CountryName,",
+				"          Alpha3Code,",
+				"          ValidFrom,",
+				"          ValidTo,",
+				"          IsCurrent,",
+				"          InsertedDateUTC,",
+				"          RowHash_TG",
+				"     ),",
 				"     partitionBy('hash', 1)) ~> sink2"
 			]
 		}
