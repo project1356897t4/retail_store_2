@@ -121,7 +121,10 @@
 									"referenceName": "DelimitedText1",
 									"type": "DatasetReference",
 									"parameters": {
-										"p_directory": "@concat(   item().TargetFolder, '/',   'year=',  formatDateTime(variables('RunTime'),'yyyy'), '/',   'month=', formatDateTime(variables('RunTime'),'MM'), '/',   'day=',   formatDateTime(variables('RunTime'),'dd'), '/',   'hour=',  formatDateTime(variables('RunTime'),'HH') )",
+										"p_directory": {
+											"value": "@concat(   item().TargetFolder, '/',   'year=',  formatDateTime(variables('runtime'),'yyyy'), '/',   'month=', formatDateTime(variables('runtime'),'MM'), '/',   'day=',   formatDateTime(variables('runtime'),'dd'), '/',   'hour=',  formatDateTime(variables('runtime'),'HH') )",
+											"type": "Expression"
+										},
 										"p_fileName": "@concat(item().TableName, '_', formatDateTime(variables('RunTime'),'yyyyMMddHHmmss'), '.csv')"
 									}
 								}
@@ -151,11 +154,14 @@
 								"storedProcedureParameters": {
 									"TableID": {
 										"value": "@{item().TableID}",
-										"type": "String"
+										"type": "Int32"
 									},
 									"NewWatermark": {
-										"value": "@{activity('GetNewWatermark').output.firstRow.NewWatermark}",
-										"type": "String"
+										"value": {
+											"value": "\"NewWatermark\": {\n    \"value\": \"@{activity('Lookup2').output.firstRow.NewWatermark}\",\n    \"type\": \"Int64\"\n}",
+											"type": "Expression"
+										},
+										"type": "Int64"
 									}
 								}
 							},
