@@ -158,7 +158,7 @@
 									},
 									"NewWatermark": {
 										"value": {
-											"value": "\"NewWatermark\": {\n    \"value\": \"@{activity('Lookup2').output.firstRow.NewWatermark}\",\n    \"type\": \"Int64\"\n}",
+											"value": "@activity('Lookup2').output.firstRow.NewWatermark",
 											"type": "Expression"
 										},
 										"type": "Int64"
