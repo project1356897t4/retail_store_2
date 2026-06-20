@@ -5,13 +5,17 @@
 		"annotations": [],
 		"type": "SqlServer",
 		"typeProperties": {
-			"server": "ROMELUSPC",
-			"database": "ROMELUSPC\\SQLEXPRESS",
+			"server": "ROMELUSPC\\SQLEXPRESS",
+			"database": "GeneralHospital",
 			"encrypt": "optional",
-			"trustServerCertificate": false,
+			"trustServerCertificate": true,
 			"authenticationType": "SQL",
-			"userName": "Romeluspc\\super",
-			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkRBVEFGQUNUT1JZQEU4QThENkI3LUNGMzMtNENGQy1CQjVFLUE4QzkyNkFBRUZCRl84NGYyNDI1YS1kZmQ4LTQwYWMtODc5Yy05ZTNhN2JhZDdjMGMiDQp9"
+			"userName": "adfuser",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiI2ZTFhNmQ3MS01ZDFiLTRiOTMtYTAwZi0xMTczYzRlYzlmMjMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "integrationRuntime1",
+			"type": "IntegrationRuntimeReference"
 		}
 	}
 }
