@@ -142,7 +142,7 @@
 				"          CountryName,",
 				"          Alpha3Code,",
 				"          ValidFrom,",
-				"          ValidTo = source2@ValidTo,",
+				"          ValidTo,",
 				"          IsCurrent",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
