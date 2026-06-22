@@ -1,5 +1,5 @@
 {
-	"name": "pipeline3",
+	"name": "Customer_Siver_to_gold_SCD2",
 	"properties": {
 		"activities": [
 			{

@@ -1,5 +1,5 @@
 {
-	"name": "pipeline2",
+	"name": "Customer_bronze_to_silver",
 	"properties": {
 		"activities": [
 			{
