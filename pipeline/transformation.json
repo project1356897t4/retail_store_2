@@ -1,9 +1,9 @@
 {
-	"name": "pipeline5",
+	"name": "transformation",
 	"properties": {
 		"activities": [
 			{
-				"name": "transformation",
+				"name": "bronze-to-silver",
 				"type": "DatabricksNotebook",
 				"dependsOn": [],
 				"policy": {
@@ -15,7 +15,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"notebookPath": "/Users/certificationromelus@gmail.com/project1folder/transformation"
+					"notebookPath": "/Users/certificationromelus@gmail.com/project1folder/bronze-to-silver",
+					"baseParameters": {
+						"run_time": "@variables('runtime')"
+					}
 				},
 				"linkedServiceName": {
 					"referenceName": "AzureDatabricks1",
