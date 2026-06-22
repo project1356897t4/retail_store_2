@@ -1,10 +1,10 @@
 {
-	"name": "Customer_Siver_to_gold_SCD2",
+	"name": "aggregration",
 	"properties": {
 		"activities": [
 			{
-				"name": "Data flow1",
-				"type": "ExecuteDataFlow",
+				"name": "aggregration",
+				"type": "DatabricksNotebook",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -15,15 +15,11 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
-					"dataflow": {
-						"referenceName": "scd2_customer",
-						"type": "DataFlowReference"
-					},
-					"compute": {
-						"coreCount": 32,
-						"computeType": "MemoryOptimized"
-					},
-					"traceLevel": "Fine"
+					"notebookPath": "/Users/certificationromelus@gmail.com/project1folder/silver-to-gold"
+				},
+				"linkedServiceName": {
+					"referenceName": "AzureDatabricks1",
+					"type": "LinkedServiceReference"
 				}
 			}
 		],

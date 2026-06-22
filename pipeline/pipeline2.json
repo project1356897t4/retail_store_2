@@ -1,9 +1,9 @@
 {
-	"name": "Customer_Siver_to_gold_SCD2",
+	"name": "pipeline2",
 	"properties": {
 		"activities": [
 			{
-				"name": "Data flow1",
+				"name": "product_transformation",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +16,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "scd2_customer",
+						"referenceName": "product_trans",
 						"type": "DataFlowReference"
 					},
 					"compute": {
