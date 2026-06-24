@@ -17,7 +17,7 @@
 				"typeProperties": {
 					"notebookPath": "/Users/certificationromelus@gmail.com/project1folder/bronze-to-silver",
 					"baseParameters": {
-						"run_time": "@variables('runtime')"
+						"run_time": "@pipeline().TriggerTime"
 					}
 				},
 				"linkedServiceName": {
